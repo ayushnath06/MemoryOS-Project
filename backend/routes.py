@@ -1,6 +1,11 @@
 from fastapi import APIRouter, UploadFile, File
 from backend.llm import generate_response
-from backend.cognee import remember, recall
+from backend.services.cognee_service import (
+    store_memory,
+    retrieve_memory,
+    forget_memory,
+    improve_memory,
+)
 
 router = APIRouter()
 
@@ -23,30 +28,27 @@ async def upload_file(file: UploadFile = File(...)):
     }
 
 
-# 🔥 MEMORY SEARCH (Cognee integrated)
 @router.post("/memory/search")
-def memory_search(query: dict):
+async def memory_search(query: dict):
     search_text = query.get("query", "")
-    user_id = query.get("user_id", "default")
 
-    results = recall(search_text, user_id)
+    result = await retrieve_memory(search_text)
 
-    return {
-        "query": search_text,
-        "results": results,
-        "message": "Fetched from Cognee"
-    }
+    return result
 
 
-# 🔥 OPTIONAL (VERY IMPORTANT FOR HACKATHON DEMO)
 @router.post("/memory/remember")
-def memory_remember(payload: dict):
+async def memory_remember(payload: dict):
     text = payload.get("text", "")
-    user_id = payload.get("user_id", "default")
 
-    result = remember(text, user_id)
+    result = await store_memory(text)
 
-    return {
-        "message": "Stored in Cognee",
-        "result": result
-    }
+    return result
+
+@router.delete("/memory/forget")
+async def memory_forget():
+    return await forget_memory()
+
+@router.post("/memory/improve")
+async def memory_improve():
+    return await improve_memory()
